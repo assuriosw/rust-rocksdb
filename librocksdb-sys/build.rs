@@ -4,6 +4,8 @@ extern crate glob;
 
 use std::env;
 use std::fs;
+use std::fs::File;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 fn link(name: &str, bundled: bool) {
@@ -182,31 +184,41 @@ fn build_rocksdb() {
         config.flag("-Wno-unused-parameter");
     }
 
+    //Build a single `.cc` file in the out dir which will `#include` every source file in the
+    //library.  This sucks compared to just calling `config.file` once for each source file so we
+    //can take advantage of the inherenet parallelism of C++ compilation, but that doesn't work.
+    //Why?  It's complicated.
+    //
+    //First: It's important to canonicalize the source file names.  the RocksDB logging system
+    //makes an assumption that the `__FILE__` intrinsic for all source *and* header files that
+    //interact with the logging system will all have the same shared prefix.  Since dependent
+    //crates (like `rocksdb`) will use the absolute path to the header files, and therefore the
+    //absolute path will be in the `__FILE__` intrinsic for those headers, the RocksDB source
+    //files must be compiled such that their `__FILE__` intrinsic has the same absolute path,
+    //otherwise the log output is corrupted.
+    //
+    //For the same reason, include paths are canonicalized above with `canonically_include`
+    //
+    //So why does that require us to make one big compilation unit?  Due to a bug in the `cc`
+    //crate:
+    //`config.file()` needs to determine a suitable name for the `.o` file that gets produced when compiling this file.  How does
+    //it do that?  Well, if `file` is relative then it's easy: it just appends `file` to the
+    //dest dir and adds `.o  But if `file` is absolute, then it appends only the file NAME to
+    //the dest dir.  That would be find except the RocksDB code has multiple files with the
+    //name `format.cc` in different directories, and this means they clobber eachother on
+    //output leading to linker errors that are hard to debug.
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let unity_path = out_path.join("unity.cc").to_string_lossy().into_owned();
+    let mut unity_file = File::create(&unity_path).unwrap();
     for file in lib_sources {
         let file = "rocksdb/".to_string() + file;
-        //NB: It's important to canonicalize the source file names.  the RocksDB logging system
-        //makes an assumption that the `__FILE__` intrinsic for all source *and* header files that
-        //interact with the logging system will all have the same shared prefix.  Since dependent
-        //crates (like `rocksdb`) will use the absolute path to the header files, and therefore the
-        //absolute path will be in the `__FILE__` intrinsic for those headers, the RocksDB source
-        //files must be compiled such that their `__FILE__` intrinsic has the same absolute path,
-        //otherwise the log output is corrupted.
-        //
-        //For the same reason, include paths are canonicalized above with `canonically_include`
 
-        //UPDATE: Unfortunately this doens't work either.  `config.file()` below needs to determine
-        //a suitable name for the `.o` file that gets produced when compiling this file.  How does
-        //it do that?  Well, if `file` is relative then it's easy: it just appends `file` to the
-        //dest dir and adds `.o  But if `file` is absolute, then it appends only the file NAME to
-        //the dest dir.  That would be find except the RocksDB code has multiple files with the
-        //name `format.cc` in different directories, and this means they clobber eachother on
-        //output leading to linker errors that are hard to debug.
-        //Need to fix this later, but for now this is disabled and logging will continue to be
-        //broken
-        //let file = fs::canonicalize(&file).expect(&format!("Failed to canonicalize source file path {}", file));
-        config.file(&file);
+        let file = fs::canonicalize(&file)
+            .expect(&format!("Failed to canonicalize source file path {}", file));
+        writeln!(unity_file, "#include \"{}\"", file.to_string_lossy()).unwrap();
     }
 
+    config.file(&unity_path);
     config.file("build_version.cc");
 
     config.cpp(true);
