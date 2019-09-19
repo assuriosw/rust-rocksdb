@@ -4,7 +4,7 @@ extern crate glob;
 
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn link(name: &str, bundled: bool) {
     use std::env::var;
@@ -30,6 +30,12 @@ fn fail_on_empty_directory(name: &str) {
     }
 }
 
+/// Adds a (possibly relative) include path to the compiler include paths.  This canonicalizes that
+/// path.
+fn canonically_include(config: &mut cc::Build, dir: impl AsRef<Path>) {
+    config.include(fs::canonicalize(dir).expect("Failed to canonicalize include path"));
+}
+
 fn bindgen_rocksdb() {
     let bindings = bindgen::Builder::default()
         .header("rocksdb/include/rocksdb/c.h")
@@ -48,37 +54,55 @@ fn build_rocksdb() {
     let target = env::var("TARGET").unwrap();
 
     let mut config = cc::Build::new();
-    config.include("rocksdb/include/");
-    config.include("rocksdb/");
-    config.include("rocksdb/third-party/gtest-1.7.0/fused-src/");
+
+    //Canonicalize the include paths into absolute paths
+    let include_paths: Vec<_> = [
+        "rocksdb/include",
+        "rocksdb",
+        "rocksdb/third-party/gtest-1.7.0/fused-src/",
+    ]
+    .iter()
+    .map(|include| {
+        fs::canonicalize(include).expect(&format!("Failed to canonicalize path {}", include))
+    })
+    .collect();
+
+    for include in include_paths.iter() {
+        config.include(include.as_path());
+    }
+
+    // Report the include paths via cargo so downstream crates can use them
+    let include_path = std::env::join_paths(include_paths.iter())
+        .expect("join_paths failed");
+    println!("cargo:include={}", include_path.to_str().expect("to_str failed"));
 
     if cfg!(feature = "snappy") {
         config.define("SNAPPY", Some("1"));
-        config.include("snappy/");
+        canonically_include(&mut config, "snappy/");
     }
 
     if cfg!(feature = "lz4") {
         config.define("LZ4", Some("1"));
-        config.include("lz4/lib/");
+        canonically_include(&mut config, "lz4/lib/");
     }
 
     if cfg!(feature = "zstd") {
         config.define("ZSTD", Some("1"));
         config.include("zstd/lib/");
-        config.include("zstd/lib/dictBuilder/");
+        canonically_include(&mut config, "zstd/lib/dictBuilder/");
     }
 
     if cfg!(feature = "zlib") {
         config.define("ZLIB", Some("1"));
-        config.include("zlib/");
+        canonically_include(&mut config, "zlib/");
     }
 
     if cfg!(feature = "bzip2") {
         config.define("BZIP2", Some("1"));
-        config.include("bzip2/");
+        canonically_include(&mut config, "bzip2/");
     }
 
-    config.include(".");
+    canonically_include(&mut config, ".");
     config.define("NDEBUG", Some("1"));
 
     let mut lib_sources = include_str!("rocksdb_lib_sources.txt")
@@ -157,6 +181,26 @@ fn build_rocksdb() {
 
     for file in lib_sources {
         let file = "rocksdb/".to_string() + file;
+        //NB: It's important to canonicalize the source file names.  the RocksDB logging system
+        //makes an assumption that the `__FILE__` intrinsic for all source *and* header files that
+        //interact with the logging system will all have the same shared prefix.  Since dependent
+        //crates (like `rocksdb`) will use the absolute path to the header files, and therefore the
+        //absolute path will be in the `__FILE__` intrinsic for those headers, the RocksDB source
+        //files must be compiled such that their `__FILE__` intrinsic has the same absolute path,
+        //otherwise the log output is corrupted.
+        //
+        //For the same reason, include paths are canonicalized above with `canonically_include`
+
+        //UPDATE: Unfortunately this doens't work either.  `config.file()` below needs to determine
+        //a suitable name for the `.o` file that gets produced when compiling this file.  How does
+        //it do that?  Well, if `file` is relative then it's easy: it just appends `file` to the
+        //dest dir and adds `.o  But if `file` is absolute, then it appends only the file NAME to
+        //the dest dir.  That would be find except the RocksDB code has multiple files with the
+        //name `format.cc` in different directories, and this means they clobber eachother on
+        //output leading to linker errors that are hard to debug.
+        //Need to fix this later, but for now this is disabled and logging will continue to be
+        //broken
+        //let file = fs::canonicalize(&file).expect(&format!("Failed to canonicalize source file path {}", file));
         config.file(&file);
     }
 
