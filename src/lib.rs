@@ -87,7 +87,7 @@ use std::path::PathBuf;
 ///
 /// See crate level documentation for a simple usage example.
 pub struct DB {
-    inner: *mut ffi::rocksdb_t,
+    pub inner: *mut ffi::rocksdb_t,
     cfs: BTreeMap<String, ColumnFamily>,
     path: PathBuf,
 }
@@ -143,7 +143,7 @@ impl fmt::Display for Error {
 
 /// For configuring block-based file storage.
 pub struct BlockBasedOptions {
-    inner: *mut ffi::rocksdb_block_based_table_options_t,
+    pub inner: *mut ffi::rocksdb_block_based_table_options_t,
 }
 
 /// Used by BlockBasedOptions::set_index_type.
@@ -223,7 +223,7 @@ pub struct PlainTableFactoryOptions {
 /// }
 /// ```
 pub struct Options {
-    inner: *mut ffi::rocksdb_options_t,
+    pub inner: *mut ffi::rocksdb_options_t,
 }
 
 /// Optionally wait for the memtable flush to be performed.
@@ -247,7 +247,7 @@ pub struct Options {
 /// let _ = DB::destroy(&Options::default(), path);
 /// ```
 pub struct FlushOptions {
-    inner: *mut ffi::rocksdb_flushoptions_t,
+    pub inner: *mut ffi::rocksdb_flushoptions_t,
 }
 
 /// Optionally disable WAL or sync for this write.
@@ -276,13 +276,13 @@ pub struct FlushOptions {
 /// let _ = DB::destroy(&Options::default(), path);
 /// ```
 pub struct WriteOptions {
-    inner: *mut ffi::rocksdb_writeoptions_t,
+    pub inner: *mut ffi::rocksdb_writeoptions_t,
 }
 
 /// An opaque type used to represent a column family. Returned from some functions, and used
 /// in others
 pub struct ColumnFamily {
-    inner: *mut ffi::rocksdb_column_family_handle_t,
+    pub inner: *mut ffi::rocksdb_column_family_handle_t,
 }
 
 unsafe impl Send for ColumnFamily {}
