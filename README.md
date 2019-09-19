@@ -2,6 +2,15 @@
 
 This is my personal fork, don't use it.  Instead use the [official version](https://github.com/rust-rocksdb/rust-rocksdb)
 
+# What is this?
+
+We use our own layer on top of this crate to improve the RocksDB ergonomics in our Rust code.  That layer needs access
+to some of the internals of `rust-rocksdb` which in the upstream version are private.  So this fork makes those public,
+but otherwise strives to be as close as possible to the upstream code.
+
+It also changes how `librocksdb-sys` is built to work around a very stupid assumption bug in the RocksDB code that
+causes log output to be corrupted.
+
 rust-rocksdb
 ============
 [![Build Status](https://travis-ci.org/rust-rocksdb/rust-rocksdb.svg?branch=master)](https://travis-ci.org/rust-rocksdb/rust-rocksdb)
