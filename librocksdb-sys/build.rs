@@ -72,9 +72,11 @@ fn build_rocksdb() {
     }
 
     // Report the include paths via cargo so downstream crates can use them
-    let include_path = std::env::join_paths(include_paths.iter())
-        .expect("join_paths failed");
-    println!("cargo:include={}", include_path.to_str().expect("to_str failed"));
+    let include_path = std::env::join_paths(include_paths.iter()).expect("join_paths failed");
+    println!(
+        "cargo:include={}",
+        include_path.to_str().expect("to_str failed")
+    );
 
     if cfg!(feature = "snappy") {
         config.define("SNAPPY", Some("1"));
@@ -106,6 +108,7 @@ fn build_rocksdb() {
     config.define("NDEBUG", Some("1"));
 
     let mut lib_sources = include_str!("rocksdb_lib_sources.txt")
+        .trim()
         .split(" ")
         .collect::<Vec<&'static str>>();
 
