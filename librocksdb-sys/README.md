@@ -14,8 +14,8 @@ https://github.com/jsgf/rocksdb-sys
 1. In the `rocksdb` subdirectory run `make util/build_version.cc`
 1. In the `rocksdb` subdirectory run `make unity.cc`
 1. Copy `rocksdb/util/build_version.cc` to this directory
-1. Use the contents of `unity.cc` to recreate the `rocksdb_lib_sources.txt` file in this directory.  Just strip the
-   `#include` and `"` and replace newlines with spaces.  This isn't always required but sometimes a release adds or
-   removes a file and then it won't build until you do this.
+1. Use the contents of `unity.cc` to recreate the `rocksdb_lib_sources.txt` file in this directory.  The latest code
+   from upstream uses one file name per line in `rocksdb_lib_sources.txt` so `unity.cc` only needs to be modified to
+   remove the `#include` directives around the file names
 1. Don't forget to update the version of the crate in `Cargo.toml` to match the RocksDB version
 
