@@ -211,11 +211,13 @@ fn build_rocksdb() {
     let unity_path = out_path.join("unity.cc").to_string_lossy().into_owned();
     let mut unity_file = File::create(&unity_path).unwrap();
     for file in lib_sources {
-        let file = "rocksdb/".to_string() + file;
+        if !file.is_empty() {
+            let file = "rocksdb/".to_string() + file;
 
-        let file = fs::canonicalize(&file)
-            .expect(&format!("Failed to canonicalize source file path {}", file));
-        writeln!(unity_file, "#include \"{}\"", file.to_string_lossy()).unwrap();
+            let file = fs::canonicalize(&file)
+                .expect(&format!("Failed to canonicalize source file path {}", file));
+            writeln!(unity_file, "#include \"{}\"", file.to_string_lossy()).unwrap();
+        }
     }
 
     config.file(&unity_path);
