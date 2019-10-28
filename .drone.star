@@ -15,7 +15,7 @@ def rust_build_step(arch, os, commands):
     "steps": [
       {
         "name": "build",
-	"image": private_docker_image("assurio-rust:" + os "-" + arch + "-latest"),
+	"image": private_docker_image("assurio-rust:{os}-{arch}-latest".format(os = os, arch = arch)),
         "commands": commands
 	}
     ]
