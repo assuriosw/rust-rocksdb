@@ -39,12 +39,12 @@ def rust_pipeline(name, target, steps):
   return pipeline
 
 def rust_check_pipeline():
-    steps = [ git_clone_submodules_step() , rust_check_step(CHECK_TARGET) ]
+    steps = [ git_clone_submodules_step(CHECK_TARGET) , rust_check_step(CHECK_TARGET) ]
 
     return rust_pipeline("check", CHECK_TARGET, steps)
 
 def rust_build_pipeline(target):
-    steps = [ git_clone_submodules_step() , rust_build_step(target) ]
+    steps = [ git_clone_submodules_step(target) , rust_build_step(target) ]
 
     if target['include_unstable_rust']:
         for toolchain in [ "beta", "nightly" ]:
@@ -60,22 +60,30 @@ def rust_build_pipeline(target):
 
     return pipeline
 
-def git_clone_submodules_step():
-    return {
-            "name": "drone_doesnt_support_submodules_wtf",
-            "image": "alpine/git",
-            "commands": [
-                    "git submodule update --init --recursive"
-                ]
-            }
+def git_clone_submodules_step(target):
+    step = {
+        "name": "drone_doesnt_support_submodules_wtf",
+        "commands": [
+                "git submodule update --init --recursive"
+        ]
+    }
+
+    if target['os'] != 'windows':
+        step["image"] = "alpine/git"
+
+    return step
 
 def rust_step(name, target, commands):
-    return       {
-            "name": name,
-            "image": private_docker_image("assurio-rust:{os}-{arch}-latest".format(os = target['os'], arch = target['arch'])),
-            "pull": "always",
-            "commands": commands
-            }
+    step = {
+        "name": name,
+        "commands": commands
+    }
+
+    if target['os'] != 'windows':
+        step["image"] = private_docker_image("assurio-rust:{os}-{arch}-latest".format(os = target['os'], arch = target['arch']))
+        step["pull"] = "always"
+
+    return step
 
 def rust_build_step(target, toolchain = "stable"):
     commands = [
@@ -100,7 +108,7 @@ def rust_pipelines():
 
     # Followed by build pipelines on each target
     for target in TARGETS:
-        steps = [ git_clone_submodules_step() , rust_build_step(target) ]
+        steps = [ git_clone_submodules_step(target) , rust_build_step(target) ]
         pipelines += [ rust_build_pipeline(target) ]
 
     return pipelines
