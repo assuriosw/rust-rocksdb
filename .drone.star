@@ -37,7 +37,9 @@ def rust_build_step(arch, os, commands):
 def main(ctx):
     commands = [
 	    "cargo version",
-	    "cargo check"
+	    "cargo check",
+            "cargo build",
+            "cargo test"
     ]
 
     steps = [
