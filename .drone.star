@@ -21,7 +21,7 @@ def git_clone_submodules_step():
             "name": "drone_missing_basic_functionality_number_1523_git_submodule_fetching",
             "image": "alpine/git",
             "commands": [
-                    "git submodule update --recursive --remote"
+                    "git submodule init --recursive --remote"
                 ]
             }
 
