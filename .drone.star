@@ -88,10 +88,10 @@ def rust_step(name, target, commands):
 
 def rust_build_step(target, toolchain = "stable"):
     commands = [
-        "dir C:\\ProgramData\\scoop\\apps\\rustup-msvc\\current\\.cargo\\bin",
-        "C:\\ProgramData\\scoop\\apps\\rustup-msvc\\current\\.cargo\\bin\\cargo.exe version",
-        "C:\\ProgramData\\scoop\\apps\\rustup-msvc\\current\\.cargo\\bin\\cargo.exe +stable version",
-        "C:\\ProgramData\\scoop\\apps\\rustup-msvc\\current\\.cargo\\bin\\cargo.exe +{tc} version".format(tc = toolchain),
+        "\"dir C:\\ProgramData\\scoop\\apps\\rustup-msvc\\current\\.cargo\\bin\"",
+        "\"C:\\ProgramData\\scoop\\apps\\rustup-msvc\\current\\.cargo\\bin\\cargo.exe version\"",
+        "\"C:\\ProgramData\\scoop\\apps\\rustup-msvc\\current\\.cargo\\bin\\cargo.exe +stable version\"",
+        "\"C:\\ProgramData\\scoop\\apps\\rustup-msvc\\current\\.cargo\\bin\\cargo.exe +{tc} version\"".format(tc = toolchain),
         "cargo version",
         "rustup show",
         "cargo +{tc} version".format(tc = toolchain),
