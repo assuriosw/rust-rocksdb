@@ -99,6 +99,13 @@ def rust_build_step(target, toolchain = "stable"):
         "cargo +{tc} test".format(tc = toolchain)
     ]
 
+    if target['os'] == 'windows':
+        commands = [
+                "get-command 'cargo.exe'"
+                "dir C:/ProgramData/scoop/apps/rustup-msvc/current/.cargo/bin",
+                "C:/ProgramData/scoop/apps/rustup-msvc/current/.cargo/bin/cargo.exe version"
+                ] + commands
+
     return rust_step("build", target, commands)
 
 def rust_check_step(target):
