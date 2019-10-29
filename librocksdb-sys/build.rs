@@ -219,6 +219,8 @@ fn build_rocksdb() {
             writeln!(unity_file, "#include \"{}\"", file.to_string_lossy()).unwrap();
         }
     }
+    // On windows this file can't be opened by the compiler if we're still using it
+    drop(unity_file);
 
     config.file(&unity_path);
     config.file("build_version.cc");
