@@ -69,14 +69,15 @@ def git_clone_submodules_step(target):
     }
 
     if target['os'] != 'windows':
-        step["image"] = "alpine/git"
+        step["image"] = private_docker_image("assurio-rust:{os}-{arch}-latest".format(os = target['os'], arch = target['arch']))
 
     return step
 
 def rust_step(name, target, commands):
     step = {
         "name": name,
-        "commands": commands
+        "commands": commands,
+        "depends_on": [ "drone_doesnt_support_submodules_wtf" ]
     }
 
     if target['os'] != 'windows':
