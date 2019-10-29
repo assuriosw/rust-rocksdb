@@ -101,7 +101,7 @@ def rust_build_step(target, toolchain = "stable"):
 
     if target['os'] == 'windows':
         commands = [
-                "get-command 'cargo.exe'"
+                "get-command 'cargo.exe'",
                 "dir C:/ProgramData/scoop/apps/rustup-msvc/current/.cargo/bin",
                 "C:/ProgramData/scoop/apps/rustup-msvc/current/.cargo/bin/cargo.exe version"
                 ] + commands
