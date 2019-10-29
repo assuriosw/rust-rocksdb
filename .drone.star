@@ -101,9 +101,7 @@ def rust_build_step(target, toolchain = "stable"):
 
     if target['os'] == 'windows':
         commands = [
-                "dir C:/ProgramData/scoop/apps/rustup-msvc/current/.cargo/bin",
-                "get-command 'cargo.exe' | select Source",
-                "C:/ProgramData/scoop/apps/rustup-msvc/current/.cargo/bin/cargo.exe version"
+                "./wtf.ps1",
                 ] + commands
 
     return rust_step("build", target, commands)
