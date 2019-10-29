@@ -120,8 +120,9 @@ def rust_pipelines():
 
     # Followed by build pipelines on each target
     for target in TARGETS:
-        steps = [ git_clone_submodules_step(target) , rust_build_step(target) ]
-        pipelines += [ rust_build_pipeline(target) ]
+        if target['os'] != "windows":
+          steps = [ git_clone_submodules_step(target) , rust_build_step(target) ]
+          pipelines += [ rust_build_pipeline(target) ]
 
     return pipelines
 
