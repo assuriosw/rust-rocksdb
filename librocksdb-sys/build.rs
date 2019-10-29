@@ -68,7 +68,7 @@ fn build_rocksdb() {
     ]
     .iter()
     .map(|include| {
-        fs::canonicalize(include).expect(&format!("Failed to canonicalize path {}", include))
+        dunce::canonicalize(include).expect(&format!("Failed to canonicalize path {}", include))
     })
     .collect();
 
@@ -217,7 +217,7 @@ fn build_rocksdb() {
         if !file.is_empty() {
             let file = "rocksdb/".to_string() + file;
 
-            let file = fs::canonicalize(&file)
+            let file = dunce::canonicalize(&file)
                 .expect(&format!("Failed to canonicalize source file path {}", file));
             writeln!(unity_file, "#include \"{}\"", file.to_string_lossy()).unwrap();
         }
