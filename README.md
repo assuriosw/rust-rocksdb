@@ -2,6 +2,14 @@
 
 This is my personal fork, don't use it.  Instead use the [official version](https://github.com/rust-rocksdb/rust-rocksdb)
 
+# WINDOWS
+
+My changes to the RocksDB build process in this fork break Windows support.  Specifically, in `build.rs` I combine all
+of the source files together into one artifact which is compiled as one unit.  That causes a conflict between the
+Winodws function `CreateFile` and an internal RocksDB library function `CreateFile`.  To fix this would require
+reverting to the per-file compilation which breaks the logging support.  Windows support is not worth it to me so it's
+simply disabled.
+
 # What is this?
 
 We use our own layer on top of this crate to improve the RocksDB ergonomics in our Rust code.  That layer needs access
