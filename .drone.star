@@ -56,7 +56,7 @@ def rust_build_pipeline(target):
     pipeline = rust_pipeline("build", target, steps)
 
     # All build pipelines should wait until the check pipeline finishes
-    pipeline["depends_on"] = [ rust_pipeline_name("check", CHECK_TARGET) ]
+    #pipeline["depends_on"] = [ rust_pipeline_name("check", CHECK_TARGET) ]
 
     return pipeline
 
@@ -101,8 +101,8 @@ def rust_build_step(target, toolchain = "stable"):
 
     if target['os'] == 'windows':
         commands = [
-                "get-command 'cargo.exe'",
                 "dir C:/ProgramData/scoop/apps/rustup-msvc/current/.cargo/bin",
+                "get-command 'cargo.exe' | select Source",
                 "C:/ProgramData/scoop/apps/rustup-msvc/current/.cargo/bin/cargo.exe version"
                 ] + commands
 
