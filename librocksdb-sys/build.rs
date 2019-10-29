@@ -35,7 +35,10 @@ fn fail_on_empty_directory(name: &str) {
 /// Adds a (possibly relative) include path to the compiler include paths.  This canonicalizes that
 /// path.
 fn canonically_include(config: &mut cc::Build, dir: impl AsRef<Path>) {
-    config.include(fs::canonicalize(dir).expect("Failed to canonicalize include path"));
+    //NB: `fs::canonicalize` is for all intents and purposes broken on Windows, in that it produces
+    //UNC paths that even MSFT's own `cl.exe` compiler rejects.
+    //https://github.com/alexcrichton/cc-rs/issues/169
+    config.include(dunce::canonicalize(dir).expect("Failed to canonicalize include path"));
 }
 
 fn bindgen_rocksdb() {
