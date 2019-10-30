@@ -3,8 +3,7 @@ DOCKER_REGISTRY="537513441174.dkr.ecr.us-east-2.amazonaws.com"
 
 TARGETS = [
         { "os": "linux", "arch": "amd64", "include_unstable_rust": True },
-        { "os": "linux", "arch": "arm64" , "include_unstable_rust": False },
-        { "os": "windows", "arch": "amd64" , "include_unstable_rust": False }
+        { "os": "linux", "arch": "arm64" , "include_unstable_rust": False }
         ]
 
 CHECK_TARGET = { "os": "linux", "arch": "amd64"}
@@ -120,9 +119,8 @@ def rust_pipelines():
 
     # Followed by build pipelines on each target
     for target in TARGETS:
-        if target['os'] != "windows":
-          steps = [ git_clone_submodules_step(target) , rust_build_step(target) ]
-          pipelines += [ rust_build_pipeline(target) ]
+        steps = [ git_clone_submodules_step(target) , rust_build_step(target) ]
+        pipelines += [ rust_build_pipeline(target) ]
 
     return pipelines
 
