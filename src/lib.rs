@@ -260,7 +260,7 @@ pub struct FlushOptions {
 /// ```
 /// use rocksdb::{DB, Options, WriteBatch, WriteOptions};
 ///
-/// let path = "_path_for_rocksdb_storageY";
+/// let path = "_path_for_rocksdb_storageZ";
 /// {
 ///     let db = DB::open_default(path).unwrap();
 ///     let mut batch = WriteBatch::default();
