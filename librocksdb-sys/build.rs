@@ -187,6 +187,9 @@ fn build_rocksdb() {
         config.flag("-Wno-unused-parameter");
     }
 
+    // All platforms supported here also support thread-local storage
+    config.define("ROCKSDB_SUPPORT_THREAD_LOCAL", Some("1"));
+
     //Build a single `.cc` file in the out dir which will `#include` every source file in the
     //library.  This sucks compared to just calling `config.file` once for each source file so we
     //can take advantage of the inherenet parallelism of C++ compilation, but that doesn't work.
