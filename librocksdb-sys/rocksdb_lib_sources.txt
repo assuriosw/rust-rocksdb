@@ -34,6 +34,7 @@ db/file_indexer.cc
 db/flush_job.cc
 db/flush_scheduler.cc
 db/forward_iterator.cc
+db/import_column_family_job.cc
 db/internal_stats.cc
 db/logs_with_prep_tracker.cc
 db/log_reader.cc
@@ -50,6 +51,7 @@ db/snapshot_impl.cc
 db/table_cache.cc
 db/table_properties_collector.cc
 db/transaction_log_impl.cc
+db/trim_history_scheduler.cc
 db/version_builder.cc
 db/version_edit.cc
 db/version_set.cc
@@ -113,12 +115,13 @@ table/block_based/block_builder.cc
 table/block_based/block_prefix_index.cc
 table/block_based/data_block_hash_index.cc
 table/block_based/data_block_footer.cc
+table/block_based/filter_block_reader_common.cc
 table/block_based/flush_block_policy.cc
 table/block_based/full_filter_block.cc
 table/block_based/index_builder.cc
 table/block_based/partitioned_filter_block.cc
+table/block_based/uncompression_dict_reader.cc
 table/block_fetcher.cc
-table/bloom_block.cc
 table/cuckoo/cuckoo_table_builder.cc
 table/cuckoo/cuckoo_table_factory.cc
 table/cuckoo/cuckoo_table_reader.cc
@@ -128,6 +131,7 @@ table/iterator.cc
 table/merging_iterator.cc
 table/meta_blocks.cc
 table/persistent_cache_helper.cc
+table/plain/plain_table_bloom.cc
 table/plain/plain_table_builder.cc
 table/plain/plain_table_factory.cc
 table/plain/plain_table_index.cc
@@ -186,10 +190,12 @@ utilities/leveldb_options/leveldb_options.cc
 utilities/memory/memory_util.cc
 utilities/merge_operators/max.cc
 utilities/merge_operators/put.cc
+utilities/merge_operators/sortlist.cc
 utilities/merge_operators/string_append/stringappend.cc
 utilities/merge_operators/string_append/stringappend2.cc
 utilities/merge_operators/uint64add.cc
 utilities/merge_operators/bytesxor.cc
+utilities/object_registry.cc
 utilities/option_change_migration/option_change_migration.cc
 utilities/options/options_util.cc
 utilities/persistent_cache/block_cache_tier.cc
@@ -197,6 +203,7 @@ utilities/persistent_cache/block_cache_tier_file.cc
 utilities/persistent_cache/block_cache_tier_metadata.cc
 utilities/persistent_cache/persistent_cache_tier.cc
 utilities/persistent_cache/volatile_tier_impl.cc
+utilities/simulator_cache/cache_simulator.cc
 utilities/simulator_cache/sim_cache.cc
 utilities/table_properties_collectors/compact_on_deletion_collector.cc
 utilities/trace/file_trace_reader_writer.cc
