@@ -19,6 +19,18 @@ but otherwise strives to be as close as possible to the upstream code.
 It also changes how `librocksdb-sys` is built to work around a very stupid assumption bug in the RocksDB code that
 causes log output to be corrupted.
 
+# Procedure to update:
+
+* Update the linked RocksDB version.  See the `librocksdb-sys/README.md` file for instructions
+* Merge the update into the `assurio` branch (we reserve `master` to sync changes from upstream)
+* Create a tag on the repo with the version of Rocks it corresponds to.  Eg `tags/v6.6.4` for the version that uses
+    RocksDB 6.6.4.
+
+Note that, somewhat counterintuitively, the version of the `rust-rocksdb` crate doesn't reflect the RocksDB version.
+Rather, the version of the `librocksdb-sys` does.  Rather than fight that convention, we leave it in place for now.
+Downstream crates incorporate this one via Git submodules using the tag created above.  It's not idea but it works for
+now.
+
 rust-rocksdb
 ============
 [![Build Status](https://travis-ci.org/rust-rocksdb/rust-rocksdb.svg?branch=master)](https://travis-ci.org/rust-rocksdb/rust-rocksdb)
