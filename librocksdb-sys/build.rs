@@ -64,7 +64,7 @@ fn build_rocksdb() {
     let include_paths: Vec<_> = [
         "rocksdb/include",
         "rocksdb",
-        "rocksdb/third-party/gtest-1.7.0/fused-src/",
+        "rocksdb/third-party/gtest-1.8.1/fused-src/",
     ]
     .iter()
     .map(|include| {
