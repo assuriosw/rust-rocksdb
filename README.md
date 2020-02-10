@@ -23,7 +23,7 @@ causes log output to be corrupted.
 
 * Update the linked RocksDB version.  See the `librocksdb-sys/README.md` file for instructions
 * Merge the update into the `assurio` branch (we reserve `master` to sync changes from upstream)
-* Create a tag on the repo with the version of Rocks it corresponds to.  Eg `tags/v6.6.4` for the version that uses
+* Create a tag on the repo with the version of Rocks it corresponds to.  Eg `tags/assurio-v6.6.4` for the version that uses
     RocksDB 6.6.4.
 
 Note that, somewhat counterintuitively, the version of the `rust-rocksdb` crate doesn't reflect the RocksDB version.
