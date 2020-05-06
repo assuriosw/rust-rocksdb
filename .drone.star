@@ -85,11 +85,11 @@ def rust_step(name, target, commands):
 
     return step
 
-def rust_build_step(target, toolchain = "stable"):
+def rust_build_step(target, toolchain = "1.42.0"):
     commands = [
         #"dir C:\\ProgramData\\scoop\\apps\\rustup-msvc\\current\\.cargo\\bin",
         #"\"C:\\ProgramData\\scoop\\apps\\rustup-msvc\\current\\.cargo\\bin\\cargo.exe version\"",
-        #"\"C:\\ProgramData\\scoop\\apps\\rustup-msvc\\current\\.cargo\\bin\\cargo.exe +stable version\"",
+        #"\"C:\\ProgramData\\scoop\\apps\\rustup-msvc\\current\\.cargo\\bin\\cargo.exe +1.42.0 version\"",
         #"\"C:\\ProgramData\\scoop\\apps\\rustup-msvc\\current\\.cargo\\bin\\cargo.exe +{tc} version\"".format(tc = toolchain),
         "cargo version",
         "rustup show",

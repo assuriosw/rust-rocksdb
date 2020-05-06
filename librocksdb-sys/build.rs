@@ -46,6 +46,7 @@ fn bindgen_rocksdb() {
         .header("rocksdb/include/rocksdb/c.h")
         .blacklist_type("max_align_t") // https://github.com/rust-lang-nursery/rust-bindgen/issues/550
         .ctypes_prefix("libc")
+        .size_t_is_usize(true)
         .generate()
         .expect("unable to generate rocksdb bindings");
 
