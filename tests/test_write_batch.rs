@@ -1,4 +1,4 @@
-// Copyright 2019 Tyler Neely
+// Copyright 2020 Tyler Neely
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,17 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
-extern crate rocksdb;
 
 use rocksdb::WriteBatch;
 
 #[test]
 fn test_write_batch_clear() {
     let mut batch = WriteBatch::default();
-    let _ = batch.put(b"1", b"2");
+    batch.put(b"1", b"2");
     assert_eq!(batch.len(), 1);
-    let _ = batch.clear();
+    batch.clear();
     assert_eq!(batch.len(), 0);
     assert!(batch.is_empty());
 }

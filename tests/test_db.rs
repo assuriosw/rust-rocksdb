@@ -1,4 +1,4 @@
-// Copyright 2019 Tyler Neely
+// Copyright 2020 Tyler Neely
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,27 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-extern crate libc;
-extern crate rocksdb;
-
 mod util;
 
-use libc::size_t;
-
-use rocksdb::{DBVector, Error, IteratorMode, Options, Snapshot, WriteBatch, DB};
+use rocksdb::{Error, IteratorMode, Options, Snapshot, WriteBatch, DB};
 use std::sync::Arc;
+use std::time::Duration;
 use std::{mem, thread};
 use util::DBPath;
-
-#[test]
-fn test_db_vector() {
-    use std::mem;
-    let len: size_t = 4;
-    let data: *mut u8 = unsafe { libc::calloc(len, mem::size_of::<u8>()) as *mut u8 };
-    let v = unsafe { DBVector::from_c(data, len) };
-    let ctrl = [0u8, 0, 0, 0];
-    assert_eq!(&*v, &ctrl[..]);
-}
 
 #[test]
 fn external() {
@@ -43,9 +29,9 @@ fn external() {
 
         assert!(db.put(b"k1", b"v1111").is_ok());
 
-        let r: Result<Option<DBVector>, Error> = db.get(b"k1");
+        let r: Result<Option<Vec<u8>>, Error> = db.get(b"k1");
 
-        assert!(r.unwrap().unwrap().to_utf8().unwrap() == "v1111");
+        assert_eq!(r.unwrap().unwrap(), b"v1111");
         assert!(db.delete(b"k1").is_ok());
         assert!(db.get(b"k1").unwrap().is_none());
     }
@@ -60,10 +46,9 @@ fn db_vector_as_ref_byte_slice() {
 
         assert!(db.put(b"k1", b"v1111").is_ok());
 
-        let r: Result<Option<DBVector>, Error> = db.get(b"k1");
-        let vector = r.unwrap().unwrap();
+        let result = db.get(b"k1").unwrap().unwrap();
 
-        assert!(get_byte_slice(&vector) == b"v1111");
+        assert_eq!(get_byte_slice(&result), b"v1111");
     }
 }
 
@@ -99,18 +84,18 @@ fn writebatch_works() {
             assert!(db.get(b"k1").unwrap().is_none());
             assert_eq!(batch.len(), 0);
             assert!(batch.is_empty());
-            let _ = batch.put(b"k1", b"v1111");
+            batch.put(b"k1", b"v1111");
             assert_eq!(batch.len(), 1);
             assert!(!batch.is_empty());
             assert!(db.get(b"k1").unwrap().is_none());
             assert!(db.write(batch).is_ok());
-            let r: Result<Option<DBVector>, Error> = db.get(b"k1");
-            assert!(r.unwrap().unwrap().to_utf8().unwrap() == "v1111");
+            let r: Result<Option<Vec<u8>>, Error> = db.get(b"k1");
+            assert_eq!(r.unwrap().unwrap(), b"v1111");
         }
         {
             // test delete
             let mut batch = WriteBatch::default();
-            let _ = batch.delete(b"k1");
+            batch.delete(b"k1");
             assert_eq!(batch.len(), 1);
             assert!(!batch.is_empty());
             assert!(db.write(batch).is_ok());
@@ -120,7 +105,7 @@ fn writebatch_works() {
             // test size_in_bytes
             let mut batch = WriteBatch::default();
             let before = batch.size_in_bytes();
-            let _ = batch.put(b"k1", b"v1234567890");
+            batch.put(b"k1", b"v1234567890");
             let after = batch.size_in_bytes();
             assert!(before + 10 <= after);
         }
@@ -156,7 +141,7 @@ fn snapshot_test() {
         assert!(db.put(b"k1", b"v1111").is_ok());
 
         let snap = db.snapshot();
-        assert!(snap.get(b"k1").unwrap().unwrap().to_utf8().unwrap() == "v1111");
+        assert_eq!(snap.get(b"k1").unwrap().unwrap(), b"v1111");
 
         assert!(db.put(b"k2", b"v2222").is_ok());
 
@@ -177,11 +162,11 @@ impl SnapshotWrapper {
         }
     }
 
-    fn check<K>(&self, key: K, value: &str) -> bool
+    fn check<K>(&self, key: K, value: &[u8]) -> bool
     where
         K: AsRef<[u8]>,
     {
-        self.snapshot.get(key).unwrap().unwrap().to_utf8().unwrap() == value
+        self.snapshot.get(key).unwrap().unwrap() == value
     }
 }
 
@@ -195,10 +180,8 @@ fn sync_snapshot_test() {
 
     let wrapper = SnapshotWrapper::new(&db);
     let wrapper_1 = wrapper.clone();
-    let handler_1 = thread::spawn(move || wrapper_1.check("k1", "v1"));
-
-    let wrapper_2 = wrapper.clone();
-    let handler_2 = thread::spawn(move || wrapper_2.check("k2", "v2"));
+    let handler_1 = thread::spawn(move || wrapper_1.check("k1", b"v1"));
+    let handler_2 = thread::spawn(move || wrapper.check("k2", b"v2"));
 
     assert!(handler_1.join().unwrap());
     assert!(handler_2.join().unwrap());
@@ -315,8 +298,8 @@ fn test_get_updates_since_one_batch() {
     let seq1 = db.latest_sequence_number();
     assert_eq!(seq1, 1);
     let mut batch = WriteBatch::default();
-    batch.put(b"key1", b"value1").unwrap();
-    batch.delete(b"key2").unwrap();
+    batch.put(b"key1", b"value1");
+    batch.delete(b"key2");
     db.write(batch).unwrap();
     assert_eq!(db.latest_sequence_number(), 3);
     let mut iter = db.get_updates_since(seq1).unwrap();
@@ -351,4 +334,43 @@ fn test_get_updates_since_out_of_range() {
     // get_updates_since() with an out of bounds sequence number
     let result = db.get_updates_since(1000);
     assert!(result.is_err());
+}
+
+#[test]
+fn test_open_as_secondary() {
+    let primary_path = DBPath::new("_rust_rocksdb_test_open_as_secondary_primary");
+
+    let db = DB::open_default(&primary_path).unwrap();
+    db.put(b"key1", b"value1").unwrap();
+
+    let mut opts = Options::default();
+    opts.set_max_open_files(-1);
+
+    let secondary_path = DBPath::new("_rust_rocksdb_test_open_as_secondary_secondary");
+    let secondary = DB::open_as_secondary(&opts, &primary_path, &secondary_path).unwrap();
+
+    let result = secondary.get(b"key1").unwrap().unwrap();
+    assert_eq!(get_byte_slice(&result), b"value1");
+
+    db.put(b"key1", b"value2").unwrap();
+    assert!(secondary.try_catch_up_with_primary().is_ok());
+
+    let result = secondary.get(b"key1").unwrap().unwrap();
+    assert_eq!(get_byte_slice(&result), b"value2");
+}
+
+#[test]
+fn test_open_with_ttl() {
+    let path = DBPath::new("_rust_rocksdb_test_open_with_ttl");
+
+    let mut opts = Options::default();
+    opts.create_if_missing(true);
+    let db = DB::open_with_ttl(&opts, &path, Duration::from_secs(1)).unwrap();
+    db.put(b"key1", b"value1").unwrap();
+
+    thread::sleep(Duration::from_secs(2));
+    // Trigger a manual compaction, this will check the TTL filter
+    // in the database and drop all expired entries.
+    db.compact_range(None::<&[u8]>, None::<&[u8]>);
+    assert!(db.get(b"key1").unwrap().is_none());
 }

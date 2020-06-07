@@ -1,4 +1,4 @@
-// Copyright 2014 Tyler Neely
+// Copyright 2020 Tyler Neely
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,8 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
-extern crate rocksdb;
+
 mod util;
 
 use rocksdb::DB;
@@ -32,14 +31,14 @@ pub fn test_forwards_iteration() {
         iter.seek_to_first();
 
         assert_eq!(iter.valid(), true);
-        assert_eq!(iter.key(), Some(b"k1".to_vec()));
-        assert_eq!(iter.value(), Some(b"v1".to_vec()));
+        assert_eq!(iter.key(), Some(b"k1".as_ref()));
+        assert_eq!(iter.value(), Some(b"v1".as_ref()));
 
         iter.next();
 
         assert_eq!(iter.valid(), true);
-        assert_eq!(iter.key(), Some(b"k2".to_vec()));
-        assert_eq!(iter.value(), Some(b"v2".to_vec()));
+        assert_eq!(iter.key(), Some(b"k2".as_ref()));
+        assert_eq!(iter.value(), Some(b"v2".as_ref()));
 
         iter.next(); // k3
         iter.next(); // k4
@@ -65,14 +64,14 @@ pub fn test_seek_last() {
         iter.seek_to_last();
 
         assert_eq!(iter.valid(), true);
-        assert_eq!(iter.key(), Some(b"k4".to_vec()));
-        assert_eq!(iter.value(), Some(b"v4".to_vec()));
+        assert_eq!(iter.key(), Some(b"k4".as_ref()));
+        assert_eq!(iter.value(), Some(b"v4".as_ref()));
 
         iter.prev();
 
         assert_eq!(iter.valid(), true);
-        assert_eq!(iter.key(), Some(b"k3".to_vec()));
-        assert_eq!(iter.value(), Some(b"v3".to_vec()));
+        assert_eq!(iter.key(), Some(b"k3".as_ref()));
+        assert_eq!(iter.value(), Some(b"v3".as_ref()));
 
         iter.prev(); // k2
         iter.prev(); // k1
@@ -97,15 +96,15 @@ pub fn test_seek() {
         iter.seek(b"k2");
 
         assert_eq!(iter.valid(), true);
-        assert_eq!(iter.key(), Some(b"k2".to_vec()));
-        assert_eq!(iter.value(), Some(b"v2".to_vec()));
+        assert_eq!(iter.key(), Some(b"k2".as_ref()));
+        assert_eq!(iter.value(), Some(b"v2".as_ref()));
 
         // Check it gets the next key when the key doesn't exist
         iter.seek(b"k3");
 
         assert_eq!(iter.valid(), true);
-        assert_eq!(iter.key(), Some(b"k4".to_vec()));
-        assert_eq!(iter.value(), Some(b"v4".to_vec()));
+        assert_eq!(iter.key(), Some(b"k4".as_ref()));
+        assert_eq!(iter.value(), Some(b"v4".as_ref()));
     }
 }
 
@@ -122,8 +121,8 @@ pub fn test_seek_to_nonexistant() {
         iter.seek(b"k2");
 
         assert_eq!(iter.valid(), true);
-        assert_eq!(iter.key(), Some(b"k3".to_vec()));
-        assert_eq!(iter.value(), Some(b"v3".to_vec()));
+        assert_eq!(iter.key(), Some(b"k3".as_ref()));
+        assert_eq!(iter.value(), Some(b"v3".as_ref()));
     }
 }
 
@@ -140,14 +139,14 @@ pub fn test_seek_for_prev() {
         iter.seek(b"k2");
 
         assert_eq!(iter.valid(), true);
-        assert_eq!(iter.key(), Some(b"k2".to_vec()));
-        assert_eq!(iter.value(), Some(b"v2".to_vec()));
+        assert_eq!(iter.key(), Some(b"k2".as_ref()));
+        assert_eq!(iter.value(), Some(b"v2".as_ref()));
 
         // Check it gets the previous key when the key doesn't exist
         iter.seek_for_prev(b"k3");
 
         assert_eq!(iter.valid(), true);
-        assert_eq!(iter.key(), Some(b"k2".to_vec()));
-        assert_eq!(iter.value(), Some(b"v2".to_vec()));
+        assert_eq!(iter.key(), Some(b"k2".as_ref()));
+        assert_eq!(iter.value(), Some(b"v2".as_ref()));
     }
 }

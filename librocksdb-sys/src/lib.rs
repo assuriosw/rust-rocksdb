@@ -1,4 +1,4 @@
-// Copyright 2019 Tyler Neely, Alex Regueiro
+// Copyright 2020 Tyler Neely, Alex Regueiro
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,17 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(clippy::all)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 
-extern crate libc;
-
-use libc::c_int;
-
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
+#[cfg(feature = "bzip2")]
 #[no_mangle]
-pub fn bz_internal_error(errcode: c_int) {
+pub fn bz_internal_error(errcode: libc::c_int) {
     panic!("bz internal error: {}", errcode);
 }

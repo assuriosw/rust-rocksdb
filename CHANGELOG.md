@@ -1,11 +1,59 @@
 # Changelog
 
-## Unreleased
+## [Unreleased]
 
-### Added
+* Export the `DEFAULT_COLUMN_FAMILY_NAME` constant.
 
-* `DB::get_updates_since()` to iterate write batches in a given sequence (nlfiedler).
-* `ReadOptions::set_tailing()` to create a tailing iterator that continues to iterate over the database as new records are added.
+## 0.14.0 (2020-04-22)
+
+* Updated lz4 to v1.9.2 (ordian)
+* BlockBasedOptions: expose `format_version`, `[index_]block_restart_interval` (ordian)
+* Improve `ffi_try` macro to make trailing comma optional (wqfish)
+* Add `set_ratelimiter` to the `Options` (PatrickNicholas)
+* Add `set_max_total_wal_size` to the `Options` (wqfish)
+* Simplify conversion on iterator item (zhangsoledad)
+* Add `flush_cf` method to the `DB` (wqfish)
+* Fix potential segfault when calling `next` on the `DBIterator` that is at the end of the range (wqfish) 
+* Move to Rust 2018 (wqfish)
+* Fix doc for `WriteBatch::delete` (wqfish)
+* Bump `uuid` and `bindgen` dependencies (jonhoo)
+* Change APIs that never return error to not return `Result` (wqfish)
+* Fix lifetime parameter for iterators (wqfish)
+* Add a doc for `optimize_level_style_compaction` method (NikVolf)  
+* Make `DBPath` use `tempfile` (jder)
+* Refactor `db.rs` and `lib.rs` into smaller pieces (jder)
+* Check if we're on a big endian system and act upon it (knarz)
+* Bump internal snappy version up to 1.1.8 (aleksuss)
+* Bump rocksdb version up to 6.7.3 (aleksuss)
+* Atomic flush option (mappum)  
+* Make `set_iterate_upper_bound` method safe (wqfish)
+* Add support for data block hash index (dvdplm)
+* Add some extra config options (casualjim)
+* Add support for range delete APIs (wqfish)  
+* Improve building `librocksdb-sys` with system libraries (basvandijk)
+* Add support for `open_for_read_only` APIs (wqfish)
+* Fix doc for `DBRawIterator::prev` and `next` methods (wqfish)
+* Add support for `open_as_secondary` APIs (calavera)
+
+## 0.13.0 (2019-11-12)
+
+### Changes
+
+* Added `ReadOptions::set_verify_checksums` and
+  `Options::set_level_compaction_dynamic_level_bytes` methods (ordian)
+* Array of bytes has been changed for pinnable slice for get operations (nbdd0121)
+* Implemented `Sync` for `DBRawIterator` (nbdd0121)
+* Removed extra copy in DBRawIterator (nbdd0121)
+* Added `Options::max_dict_bytes` and `Options::zstd_max_training_bytes` methods(methyl)
+* Added Android support (rtsisyk)
+* Added lifetimes for `DBIterator` return types (ngotchac)
+* Bumped rocksdb up to 6.2.4 (aleksuss)
+* Disabled trait derivation for librocksdb-sys (EyeOfPython)
+* Added `DB::get_updates_since()` to iterate write batches in a given sequence (nlfiedler)
+* Added `ReadOptions::set_tailing()` to create a tailing iterator that continues to
+  iterate over the database as new records are added (cjbradfield)
+* Changed column families storing (aleksuss)
+* Exposed the `status` method on iterators (rnarubin)
 
 ## 0.12.3 (2019-07-19)
 
@@ -17,7 +65,6 @@
 * Added `Sync` and `Send` implementations to `Snapshot` (pavel-mukhanov)
 * Added `raw_iterator_cf_opt` to the DB API (rnarubin)
 * Added `DB::latest_sequence_number` method (vitvakatu)
-* Changed column families storing (aleksuss)
 
 ## 0.12.2 (2019-05-03)
 

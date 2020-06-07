@@ -1,33 +1,19 @@
 language: rust
-dist: xenial
-sudo: false
+dist: bionic
 
 os:
 - linux
 - osx
-- windows
 
 rust:
   - stable
 
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-      - llvm-toolchain-trusty
-    packages:
-      - g++
-      - llvm-dev
-      - libclang-dev
-      - clang
-
-cache: cargo
-
 install:
   - rustup component add rustfmt
   - rustfmt -V
+  - rustup component add clippy
+  - cargo clippy --version
 
 script:
-  - cargo fmt --all -- --check
-  - cargo test --manifest-path=librocksdb-sys/Cargo.toml
-  - cargo test
+  - .travis/lints.sh
+  - .travis/tests.sh

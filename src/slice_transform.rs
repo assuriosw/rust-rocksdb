@@ -1,4 +1,4 @@
-// Copyright 2018 Tyler Neely
+// Copyright 2020 Tyler Neely
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@ use std::slice;
 
 use libc::{c_char, c_void, size_t};
 
-use ffi;
+use crate::ffi;
 
-/// A SliceTranform is a generic pluggable way of transforming one string
+/// A `SliceTransform` is a generic pluggable way of transforming one string
 /// to another. Its primary use-case is in configuring rocksdb
 /// to store prefix blooms by setting prefix_extractor in
 /// ColumnFamilyOptions.

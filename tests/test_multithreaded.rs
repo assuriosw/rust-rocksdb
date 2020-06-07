@@ -1,4 +1,4 @@
-// Copyright 2014 Tyler Neely
+// Copyright 2020 Tyler Neely
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,8 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
-extern crate rocksdb;
+
 mod util;
 
 use rocksdb::DB;
@@ -45,17 +44,10 @@ pub fn test_multithreaded() {
             }
         });
 
-        let db3 = db.clone();
         let j3 = thread::spawn(move || {
             for _ in 1..N {
-                let result = match db3.get(b"key") {
-                    Ok(Some(v)) => {
-                        if &v[..] != b"value1" && &v[..] != b"value2" {
-                            false
-                        } else {
-                            true
-                        }
-                    }
+                let result = match db.get(b"key") {
+                    Ok(Some(v)) => !(&v[..] != b"value1" && &v[..] != b"value2"),
                     _ => false,
                 };
                 assert!(result);

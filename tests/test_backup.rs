@@ -1,4 +1,4 @@
-// Copyright 2019 Tyler Neely
+// Copyright 2020 Tyler Neely
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,28 +11,27 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
-extern crate rocksdb;
+
+mod util;
 
 use rocksdb::{
     backup::{BackupEngine, BackupEngineOptions, RestoreOptions},
-    Options, DB,
+    DB,
 };
+use util::DBPath;
 
 #[test]
 fn backup_restore() {
     // create backup
-    let path = "_rust_rocksdb_backup_test";
-    let restore_path = "_rust_rocksdb_restore_from_backup_path";
-    let mut opts = Options::default();
-    opts.create_if_missing(true);
+    let path = DBPath::new("backup_test");
+    let restore_path = DBPath::new("restore_from_backup_path");
     {
-        let db = DB::open(&opts, path).unwrap();
+        let db = DB::open_default(&path).unwrap();
         assert!(db.put(b"k1", b"v1111").is_ok());
         let value = db.get(b"k1");
-        assert_eq!(value.unwrap().unwrap().as_ref(), b"v1111");
+        assert_eq!(value.unwrap().unwrap(), b"v1111");
         {
-            let backup_path = "_rust_rocksdb_backup_path";
+            let backup_path = DBPath::new("backup_path");
             let backup_opts = BackupEngineOptions::default();
             let mut backup_engine = BackupEngine::open(&backup_opts, &backup_path).unwrap();
             assert!(backup_engine.create_new_backup(&db).is_ok());
@@ -46,11 +45,9 @@ fn backup_restore() {
             );
             assert!(restore_status.is_ok());
 
-            let db_restore = DB::open_default(restore_path).unwrap();
+            let db_restore = DB::open_default(&restore_path).unwrap();
             let value = db_restore.get(b"k1");
-            assert_eq!(value.unwrap().unwrap().as_ref(), b"v1111");
+            assert_eq!(value.unwrap().unwrap(), b"v1111");
         }
     }
-    assert!(DB::destroy(&opts, restore_path).is_ok());
-    assert!(DB::destroy(&opts, path).is_ok());
 }

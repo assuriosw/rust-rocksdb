@@ -13,13 +13,13 @@
 // limitations under the License.
 //
 
-use ffi;
+//! Implementation of bindings to RocksDB Checkpoint[1] API
+//!
+//! [1]: https://github.com/facebook/rocksdb/wiki/Checkpoints
+
+use crate::{ffi, Error, DB};
 use std::ffi::CString;
 use std::path::Path;
-///! Implementation of bindings to RocksDB Checkpoint[1] API
-///
-/// [1]: https://github.com/facebook/rocksdb/wiki/Checkpoints
-use {Error, DB};
 
 /// Undocumented parameter for `ffi::rocksdb_checkpoint_create` function. Zero by default.
 const LOG_SIZE_FOR_FLUSH: u64 = 0_u64;
@@ -38,7 +38,7 @@ impl Checkpoint {
     pub fn new(db: &DB) -> Result<Checkpoint, Error> {
         let checkpoint: *mut ffi::rocksdb_checkpoint_t;
 
-        unsafe { checkpoint = ffi_try!(ffi::rocksdb_checkpoint_object_create(db.inner,)) };
+        unsafe { checkpoint = ffi_try!(ffi::rocksdb_checkpoint_object_create(db.inner)) };
 
         if checkpoint.is_null() {
             return Err(Error::new("Could not create checkpoint object.".to_owned()));
@@ -50,13 +50,12 @@ impl Checkpoint {
     /// Creates new physical DB checkpoint in directory specified by `path`.
     pub fn create_checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
         let path = path.as_ref();
-        let cpath = match CString::new(path.to_string_lossy().as_bytes()) {
-            Ok(c) => c,
-            Err(_) => {
-                return Err(Error::new(
-                    "Failed to convert path to CString when creating DB checkpoint".to_owned(),
-                ));
-            }
+        let cpath = if let Ok(c) = CString::new(path.to_string_lossy().as_bytes()) {
+            c
+        } else {
+            return Err(Error::new(
+                "Failed to convert path to CString when creating DB checkpoint".to_owned(),
+            ));
         };
 
         unsafe {

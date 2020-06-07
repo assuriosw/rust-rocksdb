@@ -1,7 +1,3 @@
-extern crate bindgen;
-extern crate cc;
-extern crate glob;
-
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -30,11 +26,20 @@ fn fail_on_empty_directory(name: &str) {
     }
 }
 
+fn rocksdb_include_dir() -> String {
+    match env::var("ROCKSDB_INCLUDE_DIR") {
+        Ok(val) => val,
+        Err(_) => "rocksdb/include".to_string(),
+    }
+}
+
 fn bindgen_rocksdb() {
     let bindings = bindgen::Builder::default()
-        .header("rocksdb/include/rocksdb/c.h")
+        .header(rocksdb_include_dir() + "/rocksdb/c.h")
+        .derive_debug(false)
         .blacklist_type("max_align_t") // https://github.com/rust-lang-nursery/rust-bindgen/issues/550
         .ctypes_prefix("libc")
+        .size_t_is_usize(true)
         .generate()
         .expect("unable to generate rocksdb bindings");
 
@@ -50,7 +55,7 @@ fn build_rocksdb() {
     let mut config = cc::Build::new();
     config.include("rocksdb/include/");
     config.include("rocksdb/");
-    config.include("rocksdb/third-party/gtest-1.7.0/fused-src/");
+    config.include("rocksdb/third-party/gtest-1.8.1/fused-src/");
 
     if cfg!(feature = "snappy") {
         config.define("SNAPPY", Some("1"));
@@ -82,7 +87,8 @@ fn build_rocksdb() {
     config.define("NDEBUG", Some("1"));
 
     let mut lib_sources = include_str!("rocksdb_lib_sources.txt")
-        .split("\n")
+        .trim()
+        .split('\n')
         .map(str::trim)
         .collect::<Vec<&'static str>>();
 
@@ -97,43 +103,53 @@ fn build_rocksdb() {
         // This is needed to enable hardware CRC32C. Technically, SSE 4.2 is
         // only available since Intel Nehalem (about 2010) and AMD Bulldozer
         // (about 2011).
-        config.define("HAVE_PCLMUL", Some("1"));
         config.define("HAVE_SSE42", Some("1"));
         config.flag_if_supported("-msse2");
         config.flag_if_supported("-msse4.1");
         config.flag_if_supported("-msse4.2");
-        config.flag_if_supported("-mpclmul");
+
+        if !target.contains("android") {
+            config.define("HAVE_PCLMUL", Some("1"));
+            config.flag_if_supported("-mpclmul");
+        }
     }
 
     if target.contains("darwin") {
         config.define("OS_MACOSX", Some("1"));
         config.define("ROCKSDB_PLATFORM_POSIX", Some("1"));
         config.define("ROCKSDB_LIB_IO_POSIX", Some("1"));
-    }
-    if target.contains("linux") {
+    } else if target.contains("android") {
+        config.define("OS_ANDROID", Some("1"));
+        config.define("ROCKSDB_PLATFORM_POSIX", Some("1"));
+        config.define("ROCKSDB_LIB_IO_POSIX", Some("1"));
+    } else if target.contains("linux") {
         config.define("OS_LINUX", Some("1"));
         config.define("ROCKSDB_PLATFORM_POSIX", Some("1"));
         config.define("ROCKSDB_LIB_IO_POSIX", Some("1"));
-        // COMMON_FLAGS="$COMMON_FLAGS -fno-builtin-memcmp"
-    }
-    if target.contains("freebsd") {
+    } else if target.contains("freebsd") {
         config.define("OS_FREEBSD", Some("1"));
         config.define("ROCKSDB_PLATFORM_POSIX", Some("1"));
         config.define("ROCKSDB_LIB_IO_POSIX", Some("1"));
-    }
-
-    if target.contains("windows") {
+    } else if target.contains("windows") {
         link("rpcrt4", false);
         link("shlwapi", false);
         config.define("OS_WIN", Some("1"));
         config.define("ROCKSDB_WINDOWS_UTF8_FILENAMES", Some("1"));
+        if &target == "x86_64-pc-windows-gnu" {
+            // Tell MinGW to create localtime_r wrapper of localtime_s function.
+            config.define("_POSIX_C_SOURCE", None);
+            // Tell MinGW to use at least Windows Vista headers instead of the ones of Windows XP.
+            // (This is minimum supported version of rocksdb)
+            config.define("_WIN32_WINNT", Some("0x0600"));
+        }
 
         // Remove POSIX-specific sources
         lib_sources = lib_sources
             .iter()
             .cloned()
             .filter(|file| match *file {
-                "port/port_posix.cc" | "env/env_posix.cc" | "env/io_posix.cc" => false,
+                "port/port_posix.cc" | "env/env_posix.cc" | "env/fs_posix.cc"
+                | "env/io_posix.cc" => false,
                 _ => true,
             })
             .collect::<Vec<&'static str>>();
@@ -150,7 +166,7 @@ fn build_rocksdb() {
     if target.contains("msvc") {
         config.flag("-EHsc");
     } else {
-        config.flag("-std=c++11");
+        config.flag(&cxx_standard());
         // this was breaking the build on travis due to
         // > 4mb of warnings emitted.
         config.flag("-Wno-unused-parameter");
@@ -169,17 +185,24 @@ fn build_rocksdb() {
 
 fn build_snappy() {
     let target = env::var("TARGET").unwrap();
-
+    let endianness = env::var("CARGO_CFG_TARGET_ENDIAN").unwrap();
     let mut config = cc::Build::new();
+
     config.include("snappy/");
     config.include(".");
-
     config.define("NDEBUG", Some("1"));
+    config.extra_warnings(false);
 
     if target.contains("msvc") {
         config.flag("-EHsc");
     } else {
+        // Snappy requires C++11.
+        // See: https://github.com/google/snappy/blob/master/CMakeLists.txt#L32-L38
         config.flag("-std=c++11");
+    }
+
+    if endianness == "big" {
+        config.define("SNAPPY_IS_BIG_ENDIAN", Some("1"));
     }
 
     config.file("snappy/snappy.cc");
@@ -200,11 +223,10 @@ fn build_lz4() {
 
     compiler.opt_level(3);
 
-    match env::var("TARGET").unwrap().as_str() {
-        "i686-pc-windows-gnu" => {
-            compiler.flag("-fno-tree-vectorize");
-        }
-        _ => {}
+    let target = env::var("TARGET").unwrap();
+
+    if &target == "i686-pc-windows-gnu" {
+        compiler.flag("-fno-tree-vectorize");
     }
 
     compiler.compile("liblz4.a");
@@ -233,6 +255,7 @@ fn build_zstd() {
     }
 
     compiler.opt_level(3);
+    compiler.extra_warnings(false);
 
     compiler.define("ZSTD_LIB_DEPRECATED", Some("0"));
     compiler.compile("libzstd.a");
@@ -252,6 +275,7 @@ fn build_zlib() {
 
     compiler.flag_if_supported("-Wno-implicit-function-declaration");
     compiler.opt_level(3);
+    compiler.extra_warnings(false);
     compiler.compile("libz.a");
 }
 
@@ -273,6 +297,7 @@ fn build_bzip2() {
 
     compiler.extra_warnings(false);
     compiler.opt_level(3);
+    compiler.extra_warnings(false);
     compiler.compile("libbz2.a");
 }
 
@@ -289,40 +314,49 @@ fn try_to_find_and_link_lib(lib_name: &str) -> bool {
     false
 }
 
+fn cxx_standard() -> String {
+    env::var("ROCKSDB_CXX_STD").map_or("-std=c++11".to_owned(), |cxx_std| {
+        if !cxx_std.starts_with("-std=") {
+            format!("-std={}", cxx_std)
+        } else {
+            cxx_std
+        }
+    })
+}
+
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=rocksdb/");
-    println!("cargo:rerun-if-changed=snappy/");
-    println!("cargo:rerun-if-changed=lz4/");
-    println!("cargo:rerun-if-changed=zstd/");
-    println!("cargo:rerun-if-changed=zlib/");
-    println!("cargo:rerun-if-changed=bzip2/");
-
-    fail_on_empty_directory("rocksdb");
-    fail_on_empty_directory("snappy");
-    fail_on_empty_directory("lz4");
-    fail_on_empty_directory("zstd");
-    fail_on_empty_directory("zlib");
-    fail_on_empty_directory("bzip2");
 
     bindgen_rocksdb();
 
     if !try_to_find_and_link_lib("ROCKSDB") {
+        println!("cargo:rerun-if-changed=rocksdb/");
+        fail_on_empty_directory("rocksdb");
         build_rocksdb();
     }
     if cfg!(feature = "snappy") && !try_to_find_and_link_lib("SNAPPY") {
+        println!("cargo:rerun-if-changed=snappy/");
+        fail_on_empty_directory("snappy");
         build_snappy();
     }
     if cfg!(feature = "lz4") && !try_to_find_and_link_lib("LZ4") {
+        println!("cargo:rerun-if-changed=lz4/");
+        fail_on_empty_directory("lz4");
         build_lz4();
     }
     if cfg!(feature = "zstd") && !try_to_find_and_link_lib("ZSTD") {
+        println!("cargo:rerun-if-changed=zstd/");
+        fail_on_empty_directory("zstd");
         build_zstd();
     }
-    if cfg!(feature = "zlib") && !try_to_find_and_link_lib("ZLIB") {
+    if cfg!(feature = "zlib") && !try_to_find_and_link_lib("Z") {
+        println!("cargo:rerun-if-changed=zlib/");
+        fail_on_empty_directory("zlib");
         build_zlib();
     }
-    if cfg!(feature = "bzip2") && !try_to_find_and_link_lib("BZIP2") {
+    if cfg!(feature = "bzip2") && !try_to_find_and_link_lib("BZ2") {
+        println!("cargo:rerun-if-changed=bzip2/");
+        fail_on_empty_directory("bzip2");
         build_bzip2();
     }
 }

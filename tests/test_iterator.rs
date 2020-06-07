@@ -1,4 +1,4 @@
-// Copyright 2014 Tyler Neely
+// Copyright 2020 Tyler Neely
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,8 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
-extern crate rocksdb;
+
 mod util;
 
 use rocksdb::{Direction, IteratorMode, MemtableFactory, Options, DB};
@@ -23,8 +22,9 @@ fn cba(input: &[u8]) -> Box<[u8]> {
 }
 
 #[test]
+#[allow(clippy::cognitive_complexity)]
 fn test_iterator() {
-    let n = DBPath::new("_rust_rocksdb_iteratortest");
+    let n = DBPath::new("_rust_rocksdb_iterator_test");
     {
         let k1: Box<[u8]> = b"k1".to_vec().into_boxed_slice();
         let k2: Box<[u8]> = b"k2".to_vec().into_boxed_slice();
@@ -173,7 +173,7 @@ fn key(k: &[u8]) -> Box<[u8]> {
 
 #[test]
 fn test_prefix_iterator() {
-    let n = DBPath::new("_rust_rocksdb_prefixiteratortest");
+    let n = DBPath::new("_rust_rocksdb_prefix_iterator_test");
     {
         let a1: Box<[u8]> = key(b"aaa1");
         let a2: Box<[u8]> = key(b"aaa2");
@@ -217,7 +217,7 @@ fn test_prefix_iterator_uses_full_prefix() {
     // as long as the prefix extracted from `key` matches the
     // prefix extracted from `prefix`.
 
-    let path = DBPath::new("_rust_rocksdb_prefixiteratorusesfullprefixtest");
+    let path = DBPath::new("_rust_rocksdb_prefix_iterator_uses_full_prefix_test");
     {
         let data = [
             ([0, 0, 0, 0], b"111"),
@@ -254,7 +254,7 @@ fn test_prefix_iterator_uses_full_prefix() {
 
 #[test]
 fn test_full_iterator() {
-    let path = "_rust_rocksdb_fulliteratortest";
+    let path = DBPath::new("full_iterator_test");
     {
         let a1: Box<[u8]> = key(b"aaa1");
         let a2: Box<[u8]> = key(b"aaa2");
@@ -274,14 +274,14 @@ fn test_full_iterator() {
         opts.set_allow_concurrent_memtable_write(false);
         opts.set_memtable_factory(factory);
 
-        let db = DB::open(&opts, path).unwrap();
+        let db = DB::open(&opts, &path).unwrap();
 
         assert!(db.put(&*a1, &*a1).is_ok());
         assert!(db.put(&*a2, &*a2).is_ok());
         assert!(db.put(&*b1, &*b1).is_ok());
         assert!(db.put(&*b2, &*b2).is_ok());
 
-        // A normal iterator won't work here since we're using a HashSkipList for our memtable
+        // A normal iterator won't work here since we're using a HashSkipList for our memory table
         // implementation (which buckets keys based on their prefix):
         let bad_iterator = db.iterator(IteratorMode::Start);
         assert_eq!(bad_iterator.collect::<Vec<_>>(), vec![]);
@@ -296,6 +296,26 @@ fn test_full_iterator() {
         let a_iterator = db.full_iterator(IteratorMode::Start);
         assert_eq!(a_iterator.collect::<Vec<_>>(), expected)
     }
-    let opts = Options::default();
-    assert!(DB::destroy(&opts, path).is_ok());
+}
+
+fn custom_iter<'a>(db: &'a DB) -> impl Iterator<Item = usize> + 'a {
+    db.iterator(IteratorMode::Start)
+        .map(|(_, db_value)| db_value.len())
+}
+
+#[test]
+fn test_custom_iterator() {
+    let path = DBPath::new("_rust_rocksdb_custom_iterator_test");
+    {
+        let mut opts = Options::default();
+        opts.create_if_missing(true);
+        let db = DB::open(&opts, &path).unwrap();
+        let _data = custom_iter(&db).collect::<Vec<usize>>();
+    }
+}
+
+#[test]
+fn test_iterator_outlive_db() {
+    let t = trybuild::TestCases::new();
+    t.compile_fail("tests/fail/iterator_outlive_db.rs");
 }

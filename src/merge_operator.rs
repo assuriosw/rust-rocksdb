@@ -1,4 +1,4 @@
-// Copyright 2014 Tyler Neely
+// Copyright 2020 Tyler Neely
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,23 +37,22 @@
 //!    Some(result)
 //! }
 //!
-//! fn main() {
-//!    let path = "_rust_path_to_rocksdb";
-//!    let mut opts = Options::default();
-//!    opts.create_if_missing(true);
-//!    opts.set_merge_operator("test operator", concat_merge, None);
-//!    {
-//!        let db = DB::open(&opts, path).unwrap();
-//!         let p = db.put(b"k1", b"a");
-//!         db.merge(b"k1", b"b");
-//!         db.merge(b"k1", b"c");
-//!         db.merge(b"k1", b"d");
-//!         db.merge(b"k1", b"efg");
-//!         let r = db.get(b"k1");
-//!         assert!(r.unwrap().unwrap().to_utf8().unwrap() == "abcdefg");
-//!    }
-//!    let _ = DB::destroy(&opts, path);
-//! }
+//!let path = "_rust_path_to_rocksdb";
+//!let mut opts = Options::default();
+//!
+//!opts.create_if_missing(true);
+//!opts.set_merge_operator("test operator", concat_merge, None);
+//!{
+//!    let db = DB::open(&opts, path).unwrap();
+//!    let p = db.put(b"k1", b"a");
+//!    db.merge(b"k1", b"b");
+//!    db.merge(b"k1", b"c");
+//!    db.merge(b"k1", b"d");
+//!    db.merge(b"k1", b"efg");
+//!    let r = db.get(b"k1");
+//!    assert_eq!(r.unwrap().unwrap(), b"abcdefg");
+//!}
+//!let _ = DB::destroy(&opts, path);
 //! ```
 
 use libc::{self, c_char, c_int, c_void, size_t};
@@ -201,7 +200,7 @@ impl<'a> Iterator for &'a mut MergeOperands {
 #[cfg(test)]
 mod test {
 
-    use super::*;
+    use super::MergeOperands;
 
     fn test_provided_merge(
         _new_key: &[u8],
@@ -224,10 +223,10 @@ mod test {
     }
 
     #[test]
-    fn mergetest() {
-        use {Options, DB};
+    fn merge_test() {
+        use crate::{Options, DB};
 
-        let path = "_rust_rocksdb_mergetest";
+        let path = "_rust_rocksdb_merge_test";
         let mut opts = Options::default();
         opts.create_if_missing(true);
         opts.set_merge_operator("test operator", test_provided_merge, None);
@@ -242,17 +241,20 @@ mod test {
             let m = db.merge(b"k1", b"h");
             assert!(m.is_ok());
             match db.get(b"k1") {
-                Ok(Some(value)) => match value.to_utf8() {
-                    Some(v) => println!("retrieved utf8 value: {}", v),
-                    None => println!("did not read valid utf-8 out of the db"),
-                },
+                Ok(Some(value)) => {
+                    if let Ok(v) = std::str::from_utf8(&value) {
+                        println!("retrieved utf8 value: {}", v)
+                    } else {
+                        println!("did not read valid utf-8 out of the db")
+                    }
+                }
                 Err(_) => println!("error reading value"),
                 _ => panic!("value not present"),
             }
 
             assert!(m.is_ok());
             let r = db.get(b"k1");
-            assert!(r.unwrap().unwrap().to_utf8().unwrap() == "abcdefgh");
+            assert_eq!(r.unwrap().unwrap(), b"abcdefgh");
             assert!(db.delete(b"k1").is_ok());
             assert!(db.get(b"k1").unwrap().is_none());
         }
@@ -264,16 +266,16 @@ mod test {
     }
 
     fn from_slice<T: Sized>(s: &[u8]) -> Option<&T> {
-        if ::std::mem::size_of::<T>() != s.len() {
+        if std::mem::size_of::<T>() == s.len() {
+            unsafe { Some(&*(s.as_ptr() as *const T)) }
+        } else {
             println!(
                 "slice {:?} is len {}, but T is size {}",
                 s,
                 s.len(),
-                ::std::mem::size_of::<T>()
+                std::mem::size_of::<T>()
             );
             None
-        } else {
-            unsafe { Some(&*(s.as_ptr() as *const T)) }
         }
     }
 
@@ -328,12 +330,13 @@ mod test {
     }
 
     #[test]
-    fn counting_mergetest() {
+    #[allow(clippy::too_many_lines)]
+    fn counting_merge_test() {
+        use crate::{DBCompactionStyle, Options, DB};
         use std::sync::Arc;
         use std::thread;
-        use {DBCompactionStyle, Options, DB};
 
-        let path = "_rust_rocksdb_partial_mergetest";
+        let path = "_rust_rocksdb_partial_merge_test";
         let mut opts = Options::default();
         opts.create_if_missing(true);
         opts.set_compaction_style(DBCompactionStyle::Universal);
@@ -370,6 +373,7 @@ mod test {
             let d1 = db.clone();
             let d2 = db.clone();
             let d3 = db.clone();
+
             let h1 = thread::spawn(move || {
                 for i in 0..500 {
                     let _ = d1.merge(b"k2", b"c");
