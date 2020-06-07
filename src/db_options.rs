@@ -67,7 +67,7 @@ pub fn new_cache(capacity: size_t) -> *mut ffi::rocksdb_cache_t {
 /// }
 /// ```
 pub struct Options {
-    pub(crate) inner: *mut ffi::rocksdb_options_t,
+    pub inner: *mut ffi::rocksdb_options_t,
 }
 
 /// Optionally disable WAL or sync for this write.
@@ -96,7 +96,7 @@ pub struct Options {
 /// let _ = DB::destroy(&Options::default(), path);
 /// ```
 pub struct WriteOptions {
-    pub(crate) inner: *mut ffi::rocksdb_writeoptions_t,
+    pub inner: *mut ffi::rocksdb_writeoptions_t,
 }
 
 /// Optionally wait for the memtable flush to be performed.
@@ -120,16 +120,16 @@ pub struct WriteOptions {
 /// let _ = DB::destroy(&Options::default(), path);
 /// ```
 pub struct FlushOptions {
-    pub(crate) inner: *mut ffi::rocksdb_flushoptions_t,
+    pub inner: *mut ffi::rocksdb_flushoptions_t,
 }
 
 /// For configuring block-based file storage.
 pub struct BlockBasedOptions {
-    pub(crate) inner: *mut ffi::rocksdb_block_based_table_options_t,
+    pub inner: *mut ffi::rocksdb_block_based_table_options_t,
 }
 
 pub struct ReadOptions {
-    pub(crate) inner: *mut ffi::rocksdb_readoptions_t,
+    pub inner: *mut ffi::rocksdb_readoptions_t,
     iterate_upper_bound: Option<Vec<u8>>,
 }
 
