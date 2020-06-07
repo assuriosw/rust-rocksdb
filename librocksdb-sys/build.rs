@@ -306,6 +306,14 @@ fn build_zstd() {
     compiler.opt_level(3);
 
     compiler.define("ZSTD_LIB_DEPRECATED", Some("0"));
+
+    // Hide symbols from resulting library,
+    // so we can be used with another zstd-linking lib.
+    // See https://github.com/gyscos/zstd-rs/issues/58
+    compiler.flag("-fvisibility=hidden");
+    compiler.define("ZSTDLIB_VISIBILITY", Some(""));
+    compiler.define("ZDICTLIB_VISIBILITY", Some(""));
+    compiler.define("ZSTDERRORLIB_VISIBILITY", Some(""));
     compiler.compile("libzstd.a");
 }
 
