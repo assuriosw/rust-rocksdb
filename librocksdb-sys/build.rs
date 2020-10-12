@@ -135,6 +135,9 @@ fn build_rocksdb() {
         }
     }
 
+    // All targets support thread-local storage
+    config.define("ROCKSDB_SUPPORT_THREAD_LOCAL", Some("1"));
+
     if target.contains("darwin") {
         config.define("OS_MACOSX", Some("1"));
         config.define("ROCKSDB_PLATFORM_POSIX", Some("1"));
