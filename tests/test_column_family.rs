@@ -48,10 +48,12 @@ fn test_column_family() {
                         specifying column
             families"
             ),
-            Err(e) => assert!(e.to_string().starts_with(
-                "Invalid argument: You have to open all \
-                 column families."
-            )),
+            Err(e) => assert!(
+                e.to_string()
+                    .starts_with("Invalid argument: Column families not opened: "),
+                "unexpected error string '{}'",
+                e.to_string()
+            ),
         }
     }
 
